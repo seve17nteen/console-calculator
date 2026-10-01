@@ -6,6 +6,8 @@ TARGET = ConsoleCalculator
 TEMPLATE = app
 SOURCES += \
         calculator.cpp \
+        csvparser.cpp \
         main.cpp
 HEADERS += \
-        calculator.h
+        calculator.h \
+        csvparser.h

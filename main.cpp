@@ -2,6 +2,7 @@
 #include <QTextStream>
 #include <QStringList>
 #include "calculator.h"
+#include "csvparser.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -16,6 +17,7 @@ void printHelp(QTextStream &out)
     out << "  mul <a> <b> - умножение\n";
     out << "  div <a> <b> - деление\n";
     out << "  reset       - сброс\n";
+    out << "  csv <путь_к_файлу> - обработать CSV с числами\n";
     out << "  help        - эта справка\n";
     out << "  quit        - выход\n";
 }
@@ -41,6 +43,9 @@ int main(int argc, char *argv[])
     // Создаём калькулятор (родитель не нужен – живёт до конца программы)
     Calculator calc;
 
+    // Создаём CSV-парсер
+    CsvParser csv;
+
     // СОЕДИНЕНИЯ: связываем сигналы калькулятора с лямбда-обработчиками
 
     // 1. При успешном вычислении – выводим результат
@@ -54,6 +59,39 @@ int main(int argc, char *argv[])
     QObject::connect(&calc, &Calculator::errorOccurred,
                      [&out](const QString &msg) {
                          out << "Ошибка: " << msg << "\n";
+                         out.flush();
+                     });
+
+    // 3. CSV: успешно обработанная строка
+    QObject::connect(&csv, &CsvParser::lineProcessed,
+                     [&out](int lineNumber, double sum, double average) {
+                         out << "Строка " << lineNumber
+                             << ": сумма = " << sum
+                             << ", среднее = " << average << "\n";
+                         out.flush();
+                     });
+
+    // 4. CSV: ошибка в конкретной строке
+    QObject::connect(&csv, &CsvParser::lineError,
+                     [&out](int lineNumber, const QString &msg) {
+                         out << "Строка " << lineNumber
+                             << ": ОШИБКА — " << msg << "\n";
+                         out.flush();
+                     });
+
+    // 5. CSV: файл обработан до конца
+    QObject::connect(&csv, &CsvParser::finished,
+                     [&out](int totalLines, double grandSum) {
+                         out << "--- Итог ---\n";
+                         out << "Всего строк: " << totalLines << "\n";
+                         out << "Общая сумма: " << grandSum << "\n";
+                         out.flush();
+                     });
+
+    // 6. CSV: общая ошибка (файл не открылся и т.п.)
+    QObject::connect(&csv, &CsvParser::errorOccurred,
+                     [&out](const QString &msg) {
+                         out << "Ошибка CSV: " << msg << "\n";
                          out.flush();
                      });
 
@@ -96,6 +134,20 @@ int main(int argc, char *argv[])
         // Сброс
         if (command == "reset") {
             calc.reset();
+            out << "> ";
+            out.flush();
+            continue;
+        }
+
+        // CSV: команда из 2 токенов — должна идти ДО общей проверки size != 3
+        if (command == "csv") {
+            if (parts.size() != 2) {
+                out << "Ошибка: используйте: csv <путь_к_файлу>\n";
+                out << "> ";
+                out.flush();
+                continue;
+            }
+            csv.parseFile(parts[1]);
             out << "> ";
             out.flush();
             continue;
