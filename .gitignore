@@ -1,0 +1,29 @@
+# Qt Creator
+*.user
+*.user.*
+*.pro.user
+*.pro.user.*
+
+# Сборка
+build/
+build-*/
+debug/
+release/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+Makefile
+Makefile.*
+*.Debug
+*.Release
+
+# Прочее
+.DS_Store
+Thumbs.db
